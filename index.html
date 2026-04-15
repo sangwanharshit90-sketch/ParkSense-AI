@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>ParkSense AI</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    background: radial-gradient(circle at top, #111, #000);
+    color: #f5f5f7;
+}
+
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 60px;
+    background: rgba(20,20,20,0.7);
+    backdrop-filter: blur(14px);
+}
+
+.nav-left {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.logo {
+    width: 60px;
+    height: 60px;
+    border-radius: 16px;
+}
+
+.brand {
+    font-size: 24px;
+    font-weight: 600;
+}
+
+.nav-right a {
+    margin-left: 30px;
+    color: #aaa;
+    text-decoration: none;
+}
+
+.nav-right a:hover {
+    color: white;
+}
+
+.hero {
+    text-align: center;
+    padding: 70px 20px;
+}
+
+.card {
+    width: 70%;
+    margin: auto;
+    background: rgba(30,30,30,0.7);
+    padding: 40px;
+    border-radius: 25px;
+}
+
+button {
+    padding: 14px 30px;
+    background: linear-gradient(135deg, #0071e3, #00c6ff);
+    border-radius: 14px;
+    border: none;
+    color: white;
+    cursor: pointer;
+}
+
+.images {
+    display: flex;
+    justify-content: space-around;
+    margin-top: 40px;
+}
+
+.images img {
+    width: 320px;
+    border-radius: 20px;
+}
+
+.results {
+    margin-top: 30px;
+}
+
+/* GRID */
+.slot-grid {
+    display: grid;
+    grid-template-columns: repeat(8, 50px);
+    gap: 10px;
+    justify-content: center;
+    margin-top: 20px;
+}
+
+.slot {
+    width: 50px;
+    height: 50px;
+    background: #444;
+    border-radius: 10px;
+    cursor: pointer;
+}
+
+.slot.selected {
+    background: #00c6ff;
+}
+
+.slot.occupied {
+    background: red;
+    cursor: not-allowed;
+}
+</style>
+</head>
+
+<body>
+
+<header class="navbar">
+    <div class="nav-left">
+        <img src="{{ url_for('static', filename='logo.png') }}" class="logo">
+        <span class="brand">ParkSense AI</span>
+    </div>
+
+    <div class="nav-right">
+        <a href="/history">History</a>
+        <a href="/logout">Logout</a>
+    </div>
+</header>
+
+<div class="hero">
+    <h1>ParkSense AI</h1>
+    <p>AI-powered Smart Bike Parking Detection</p>
+</div>
+
+<div class="card">
+
+    <input type="file" id="fileInput">
+    <button onclick="uploadImage()">Upload & Detect</button>
+
+    <div class="images">
+        <div>
+            <h3>Input</h3>
+            <img id="inputImage">
+        </div>
+
+        <div>
+            <h3>Output</h3>
+            <img id="outputImage">
+        </div>
+    </div>
+
+    <div class="results">
+        <p>📊 Total Slots: <span id="total">-</span></p>
+        <p>🏍 Occupied: <span id="occupied">-</span></p>
+        <p>🟢 Available: <span id="available">-</span></p>
+        <p id="status"></p>
+    </div>
+
+    <!-- SLOT GRID -->
+    <div id="bookingSection" style="display:none;">
+        <h3>Select Parking Slots</h3>
+        <div id="grid" class="slot-grid"></div>
+        <br>
+        <button onclick="bookSlots()">Confirm Booking</button>
+        <p id="bookingMsg"></p>
+    </div>
+
+</div>
+
+<script>
+let availableSlots = 0;
+let selectedSlots = [];
+let occupiedCount = 0;
+
+function uploadImage() {
+    let file = document.getElementById("fileInput").files[0];
+
+    if (!file) {
+        alert("Select image");
+        return;
+    }
+
+    let formData = new FormData();
+    formData.append("image", file);
+
+    document.getElementById("inputImage").src = URL.createObjectURL(file);
+
+    fetch("/upload", {
+        method: "POST",
+        body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+
+        document.getElementById("outputImage").src =
+            data.image + "?t=" + new Date().getTime();
+
+        document.getElementById("total").innerText = data.total;
+        document.getElementById("occupied").innerText = data.occupied;
+        document.getElementById("available").innerText = data.available;
+
+        let status = document.getElementById("status");
+        status.innerText = data.status;
+
+        if (data.available === 0) {
+            status.style.color = "red";
+        } else {
+            status.style.color = "#00ffcc";
+        }
+
+        availableSlots = data.available;
+        occupiedCount = data.occupied;
+
+        document.getElementById("bookingSection").style.display = "block";
+
+        createGrid(data.total, data.occupied);
+    });
+}
+
+function createGrid(total, occupied) {
+    let grid = document.getElementById("grid");
+    grid.innerHTML = "";
+    selectedSlots = [];
+
+    for (let i = 0; i < total; i++) {
+        let div = document.createElement("div");
+        div.classList.add("slot");
+
+        if (i < occupied) {
+            div.classList.add("occupied");
+        } else {
+            div.onclick = () => toggleSlot(div, i);
+        }
+
+        grid.appendChild(div);
+    }
+}
+
+function toggleSlot(div, index) {
+    if (div.classList.contains("selected")) {
+        div.classList.remove("selected");
+        selectedSlots = selectedSlots.filter(i => i !== index);
+    } else {
+        if (selectedSlots.length >= availableSlots) {
+            alert("No more slots available!");
+            return;
+        }
+        div.classList.add("selected");
+        selectedSlots.push(index);
+    }
+}
+
+function bookSlots() {
+
+    if (selectedSlots.length === 0) {
+        alert("Select slots first");
+        return;
+    }
+
+    // 🔥 CONFIRMATION POPUP
+    if (!confirm("Confirm booking selected slots?")) return;
+
+    let formData = new FormData();
+    formData.append("slots", selectedSlots.length);
+
+    fetch("/book", {
+        method: "POST",
+        body: formData
+    })
+    .then(res => res.text())
+    .then(msg => {
+
+        let grid = document.getElementById("grid").children;
+
+        selectedSlots.forEach(index => {
+            grid[index].classList.remove("selected");
+            grid[index].classList.add("occupied");
+            grid[index].onclick = null;
+        });
+
+        occupiedCount += selectedSlots.length;
+        availableSlots -= selectedSlots.length;
+
+        document.getElementById("occupied").innerText = occupiedCount;
+        document.getElementById("available").innerText = availableSlots;
+
+        let status = document.getElementById("status");
+
+        if (availableSlots === 0) {
+            status.innerText = "Full ❌";
+            status.style.color = "red";
+        } else {
+            status.innerText = "Space Available ✅";
+            status.style.color = "#00ffcc";
+        }
+
+        selectedSlots = [];
+
+        document.getElementById("bookingMsg").innerText = msg;
+    });
+}
+</script>
+
+</body>
+</html>

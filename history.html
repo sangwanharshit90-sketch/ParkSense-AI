@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>History</title>
+<style>
+body {background:#111;color:white;text-align:center;font-family:sans-serif;}
+.card {background:#222;margin:20px auto;padding:20px;width:60%;border-radius:10px;}
+img {width:250px;border-radius:10px;}
+button {padding:8px 15px;border:none;border-radius:6px;color:white;}
+</style>
+</head>
+
+<body>
+
+<h1>History</h1>
+
+<a href="/delete_all_history">
+<button style="background:red;">Delete All</button>
+</a>
+
+<h2>Detections</h2>
+
+{% for d in detections %}
+<div class="card">
+    <img src="{{ d[1] }}"><br><br>
+    Total: {{ d[2] }} <br>
+    Occupied: {{ d[3] }} <br>
+    Available: {{ d[4] }} <br><br>
+
+    <a href="/delete_history/{{ d[0] }}">
+        <button style="background:red;">Delete</button>
+    </a>
+</div>
+{% endfor %}
+
+<h2>Bookings</h2>
+
+{% for b in bookings %}
+<div class="card">
+    Slots Booked: {{ b[0] }}
+</div>
+{% endfor %}
+
+<a href="/">⬅ Back</a>
+
+</body>
+</html>

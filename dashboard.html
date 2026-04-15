@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Dashboard</title>
+<style>
+body {
+    background: #111;
+    color: white;
+    font-family: sans-serif;
+    text-align: center;
+}
+.card {
+    background: #222;
+    padding: 20px;
+    margin: 20px auto;
+    width: 50%;
+    border-radius: 10px;
+}
+</style>
+</head>
+
+<body>
+
+<h1>Your Bookings</h1>
+
+{% for b in bookings %}
+<div class="card">
+    Slots Booked: {{ b[0] }}
+</div>
+{% endfor %}
+
+<a href="/">⬅ Back</a>
+
+</body>
+</html>
